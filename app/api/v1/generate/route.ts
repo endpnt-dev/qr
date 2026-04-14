@@ -75,7 +75,14 @@ async function handleGenerateRequest(request: NextRequest): Promise<Response> {
 
   try {
     // 1. Validate API key
-    const apiKey = getApiKeyFromHeaders(request.headers)
+    let apiKey = getApiKeyFromHeaders(request.headers)
+
+    // For GET requests, also accept api_key as query parameter
+    if (!apiKey && request.method === 'GET') {
+      const url = new URL(request.url)
+      apiKey = url.searchParams.get('api_key')
+    }
+
     if (!apiKey) {
       return errorResponse(
         ERROR_CODES.AUTH_REQUIRED,
