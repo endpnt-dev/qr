@@ -86,6 +86,7 @@ async function handleQRRequest(request: NextRequest): Promise<NextResponse> {
   const startTime = Date.now();
 
   try {
+    console.log(`[${requestId}] === V2 ROUTE CALLED === ${request.method} ${request.url}`);
     console.log(`[${requestId}] QR v2 request: ${request.method} ${request.url}`);
 
     // Parse request parameters
