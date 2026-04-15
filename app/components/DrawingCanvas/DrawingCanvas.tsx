@@ -63,7 +63,7 @@ export default function DrawingCanvas({
     ctx.setLineDash([4, 4])
     ctx.strokeStyle = '#9CA3AF'
     ctx.lineWidth = 1
-    const guideSize = 140 // ~70% of 200
+    const guideSize = 120 // ~60% of 200 (more border space)
     const guideOffset = (200 - guideSize) / 2
     ctx.strokeRect(guideOffset, guideOffset, guideSize, guideSize)
     ctx.setLineDash([]) // Reset dash pattern
@@ -154,8 +154,8 @@ export default function DrawingCanvas({
           ref={canvasRef}
           width={200}
           height={200}
-          className="w-full h-[400px] border border-gray-300 rounded-lg cursor-crosshair bg-white touch-none"
-          style={{ touchAction: 'none', maxWidth: '400px' }}
+          className="w-full aspect-square border border-gray-300 rounded-lg cursor-crosshair bg-white touch-none"
+          style={{ touchAction: 'none', minHeight: '400px' }}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
@@ -177,7 +177,7 @@ export default function DrawingCanvas({
         <button
           onClick={undo}
           disabled={!canUndo}
-          className="p-2 border rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="p-2 border rounded bg-background hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
           title="Undo"
         >
           <Undo2 className="w-4 h-4" />
@@ -186,7 +186,7 @@ export default function DrawingCanvas({
         <button
           onClick={redo}
           disabled={!canRedo}
-          className="p-2 border rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="p-2 border rounded bg-background hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
           title="Redo"
         >
           <Redo2 className="w-4 h-4" />
@@ -194,7 +194,7 @@ export default function DrawingCanvas({
 
         <button
           onClick={clear}
-          className="p-2 border rounded hover:bg-gray-50 text-red-600 hover:bg-red-50"
+          className="p-2 border rounded bg-background hover:bg-gray-50 text-red-600 hover:bg-red-50"
           title="Clear"
         >
           <Trash2 className="w-4 h-4" />

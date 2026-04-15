@@ -22,10 +22,10 @@ function SVGPreview({ path, strokeColor, strokeWidth, fill, className = '' }: SV
         >
           {/* QR Code guide rectangle */}
           <rect
-            x="30"
-            y="30"
-            width="140"
-            height="140"
+            x="40"
+            y="40"
+            width="120"
+            height="120"
             fill="none"
             stroke="#9CA3AF"
             strokeWidth="1"
@@ -33,14 +33,14 @@ function SVGPreview({ path, strokeColor, strokeWidth, fill, className = '' }: SV
           />
 
           {/* QR Code placeholder pattern */}
-          <rect x="30" y="30" width="140" height="140" fill="white" />
+          <rect x="40" y="40" width="120" height="120" fill="white" />
           <defs>
             <pattern id="qr-pattern" x="0" y="0" width="8" height="8" patternUnits="userSpaceOnUse">
               <rect x="0" y="0" width="4" height="4" fill="black" />
               <rect x="4" y="4" width="4" height="4" fill="black" />
             </pattern>
           </defs>
-          <rect x="35" y="35" width="130" height="130" fill="url(#qr-pattern)" opacity="0.3" />
+          <rect x="45" y="45" width="110" height="110" fill="url(#qr-pattern)" opacity="0.3" />
 
           {/* User's drawn border path */}
           {path && (

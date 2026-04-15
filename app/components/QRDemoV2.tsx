@@ -338,7 +338,7 @@ export default function QRDemoV2() {
                     type="color"
                     value={params.color}
                     onChange={(e) => updateParam('color', e.target.value)}
-                    className="w-full h-12 border rounded-lg bg-background cursor-pointer"
+                    className="w-full h-12 border rounded-lg bg-gray-800 cursor-pointer"
                   />
                 </div>
 
@@ -348,7 +348,7 @@ export default function QRDemoV2() {
                     type="color"
                     value={params.background}
                     onChange={(e) => updateParam('background', e.target.value)}
-                    className="w-full h-12 border rounded-lg bg-background cursor-pointer"
+                    className="w-full h-12 border rounded-lg bg-gray-800 cursor-pointer"
                   />
                 </div>
               </div>
@@ -443,7 +443,7 @@ export default function QRDemoV2() {
                         type="color"
                         value={params.eye_color || params.color}
                         onChange={(e) => updateParam('eye_color', e.target.value)}
-                        className="w-full h-10 border rounded bg-background cursor-pointer"
+                        className="w-full h-10 border rounded bg-gray-800 cursor-pointer"
                       />
                     </div>
                     <div>
@@ -452,7 +452,7 @@ export default function QRDemoV2() {
                         type="color"
                         value={params.eye_inner_color || params.color}
                         onChange={(e) => updateParam('eye_inner_color', e.target.value)}
-                        className="w-full h-10 border rounded bg-background cursor-pointer"
+                        className="w-full h-10 border rounded bg-gray-800 cursor-pointer"
                       />
                     </div>
                   </div>
@@ -743,7 +743,7 @@ export default function QRDemoV2() {
                                     } as BorderSVG)
                                   }
                                 }}
-                                className="w-full h-8 border rounded cursor-pointer"
+                                className="w-full h-8 border rounded cursor-pointer bg-gray-800"
                               />
                             </div>
                             <div>
@@ -782,7 +782,7 @@ export default function QRDemoV2() {
                                     } as BorderSVG)
                                   }
                                 }}
-                                className="flex-1 h-8 border rounded cursor-pointer"
+                                className="flex-1 h-8 border rounded cursor-pointer bg-gray-800"
                                 disabled={params.border?.mode === 'svg' && params.border.fill === 'none'}
                               />
                               <button
