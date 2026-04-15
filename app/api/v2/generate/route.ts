@@ -24,14 +24,16 @@ function getApiKeyFromHeaders(headers: Headers): string | null {
   return key ? key.trim() : null;
 }
 
-function validateApiKey(key: string | null): ApiKey | null {
+async function validateApiKey(key: string | null, request: NextRequest): Promise<ApiKey | null> {
   if (!key) return null;
-  const hardcodedKeys: ApiKeys = {
-    "ek_live_s0LugVgX9gY3pDyG8ttw": { tier: "pro", name: "JK Admin" },
-    "ek_live_HfyLIR131eGNj1QfPly8": { tier: "free", name: "Demo Key" },
-    "ek_test_fLtg0u2hMjAFRmICZI0C": { tier: "free", name: "Dev Testing" }
-  };
-  return hardcodedKeys[key] || null;
+  const origin = new URL(request.url).origin;
+  const res = await fetch(`${origin}/api/v1/auth`, {
+    method: 'POST',
+    headers: { 'x-api-key': key },
+  });
+  if (!res.ok) return null;
+  const data = await res.json();
+  return data.valid ? { tier: data.tier, name: data.name } : null;
 }
 
 // Helper to parse request body from different methods
@@ -131,7 +133,7 @@ async function handleQRRequest(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    const keyInfo = validateApiKey(apiKey);
+    const keyInfo = await validateApiKey(apiKey, request);
     if (!keyInfo) {
       console.log(`[${requestId}] Invalid API key`);
       return errorResponse(
