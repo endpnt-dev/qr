@@ -56,7 +56,7 @@ export default function ApiTester() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-api-key': 'ek_live_74qlNSbK5jTwq28Y',
+          'x-api-key': 'ek_live_74qlNSbK5jTwQ28Y',
         },
         body: JSON.stringify(requestBody),
       })

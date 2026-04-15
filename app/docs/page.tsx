@@ -114,7 +114,7 @@ const errorCodes = [
 
 const codeExamples = {
   curl: `curl -X POST https://qr.endpnt.dev/api/v1/generate \\
-  -H "x-api-key: ek_live_74qlNSbK5jTwq28Y" \\
+  -H "x-api-key: ek_live_74qlNSbK5jTwQ28Y" \\
   -H "Content-Type: application/json" \\
   -d '{
     "data": "https://example.com",
@@ -280,7 +280,7 @@ export default function DocsPage() {
                   <div>
                     <p className="font-medium text-sm">Demo API Key</p>
                     <p className="text-sm text-muted-foreground">
-                      Use <code className="bg-background px-1.5 py-0.5 rounded font-mono">ek_live_74qlNSbK5jTwq28Y</code> for testing.
+                      Use <code className="bg-background px-1.5 py-0.5 rounded font-mono">ek_live_74qlNSbK5jTwQ28Y</code> for testing.
                       This key has free tier limits (10 requests/minute, 100/month).
                     </p>
                   </div>
