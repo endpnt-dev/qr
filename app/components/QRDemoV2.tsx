@@ -133,11 +133,10 @@ export default function QRDemoV2() {
     setError(null)
 
     try {
-      const response = await fetch('/api/v2/generate', {
+      const response = await fetch('/api/v2/demo-generate', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': 'ek_live_hoWnzx74NUf04esiG8pv' // Live demo key (free tier)
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify(params)
       })
@@ -253,7 +252,13 @@ export default function QRDemoV2() {
       }
     })
 
-    return `curl -X POST https://qr.endpnt.dev/api/v2/generate \\
+    return `# Demo endpoint (watermarked output):
+curl -X POST https://qr.endpnt.dev/api/v2/demo-generate \\
+  -H "Content-Type: application/json" \\
+  -d '${JSON.stringify(cleanParams, null, 2)}'
+
+# Production endpoint (clean output, requires API key):
+curl -X POST https://qr.endpnt.dev/api/v2/generate \\
   -H "Content-Type: application/json" \\
   -H "x-api-key: YOUR_API_KEY" \\
   -d '${JSON.stringify(cleanParams, null, 2)}'`
