@@ -87,20 +87,21 @@ export async function fetchImage(url: string, options: FetchImageOptions): Promi
       
     } catch (error) {
       clearTimeout(timeoutId);
-      
-      if (error.name === 'AbortError') {
+
+      if (error instanceof Error && error.name === 'AbortError') {
         throw new QRProcessingError(
           `Request timed out after ${timeoutMs}ms`,
           getErrorCode(label, 'TIMEOUT')
         );
       }
-      
+
       if (error instanceof QRProcessingError) {
         throw error;
       }
-      
+
+      const message = error instanceof Error ? error.message : String(error);
       throw new QRProcessingError(
-        `Network error: ${error.message}`,
+        `Network error: ${message}`,
         getErrorCode(label, 'NETWORK_ERROR')
       );
     }
@@ -110,8 +111,9 @@ export async function fetchImage(url: string, options: FetchImageOptions): Promi
       throw error;
     }
     
+    const message = error instanceof Error ? error.message : String(error);
     throw new QRProcessingError(
-      `Failed to fetch image: ${error.message}`,
+      `Failed to fetch image: ${message}`,
       getErrorCode(label, 'FETCH_FAILED')
     );
   }

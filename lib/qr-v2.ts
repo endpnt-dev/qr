@@ -9,7 +9,8 @@ import { applyOverlay } from './qr-v2/overlay';
 import sharp from 'sharp';
 
 // Re-export types for the API route
-export { QRParamsV2, QRValidationError, QRProcessingError };
+export type { QRParamsV2 } from './qr-v2/types';
+export { QRValidationError, QRProcessingError } from './qr-v2/types';
 
 /**
  * Generate a QR code with v2 styling features

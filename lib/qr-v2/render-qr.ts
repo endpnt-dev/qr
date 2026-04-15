@@ -10,10 +10,8 @@ export async function renderQRCode(params: ValidatedQRParams): Promise<Buffer> {
     // For now, use the basic qrcode library to generate a standard QR
     // TODO: Implement custom rendering with dot styles, eye shapes, gradients
     
-    const qrOptions: QRCode.QRCodeOptions = {
+    const qrOptions = {
       errorCorrectionLevel: params.error_correction,
-      type: 'png',
-      quality: 0.92,
       margin: params.margin,
       color: {
         dark: params.color,
