@@ -193,7 +193,7 @@ async function handleQRRequest(request: NextRequest): Promise<NextResponse> {
     }
 
     // Rate limiting
-    const rateLimitResult = await checkRateLimit(apiKey, tier);
+    const rateLimitResult = await checkRateLimit(apiKey, tier as "free" | "starter" | "pro" | "enterprise");
     if (!rateLimitResult.allowed) {
       console.log(`[${requestId}] Rate limited`);
       return errorResponse(
