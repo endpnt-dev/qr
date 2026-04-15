@@ -639,7 +639,7 @@ export default function QRDemoV2() {
                             type="range"
                             min="5"
                             max="50"
-                            value={params.border.width || 20}
+                            value={params.border?.width || 20}
                             onChange={(e) => updateParam('border', {
                               ...params.border,
                               width: parseInt(e.target.value)
@@ -647,14 +647,14 @@ export default function QRDemoV2() {
                             className="w-full"
                           />
                           <div className="text-center text-xs text-gray-500">
-                            {params.border.width || 20}px
+                            {params.border?.width || 20}px
                           </div>
                         </div>
                         <div>
                           <label className="block text-sm font-medium mb-2">Border Color</label>
                           <input
                             type="color"
-                            value={params.border.color || '#2C3E50'}
+                            value={params.border?.color || '#2C3E50'}
                             onChange={(e) => updateParam('border', {
                               ...params.border,
                               color: e.target.value
@@ -674,7 +674,7 @@ export default function QRDemoV2() {
                               updateParam('border', {
                                 ...params.border,
                                 label: {
-                                  ...params.border.label || {},
+                                  ...params.border?.label || {},
                                   text: e.target.value,
                                   position: 'bottom',
                                   font_size: 14,
@@ -704,7 +704,7 @@ export default function QRDemoV2() {
                                 image_url: url
                               } as BorderImage)}
                               className={`aspect-square border-2 rounded-lg overflow-hidden transition-colors ${
-                                params.border.image_url === url
+                                params.border?.mode === 'image' && params.border?.image_url === url
                                   ? 'border-primary'
                                   : 'border-gray-300'
                               }`}
@@ -721,7 +721,7 @@ export default function QRDemoV2() {
                           type="range"
                           min="20"
                           max="100"
-                          value={params.border.width || 40}
+                          value={params.border?.width || 40}
                           onChange={(e) => updateParam('border', {
                             ...params.border,
                             width: parseInt(e.target.value)
@@ -729,7 +729,7 @@ export default function QRDemoV2() {
                           className="w-full"
                         />
                         <div className="text-center text-xs text-gray-500">
-                          {params.border.width || 40}px
+                          {params.border?.width || 40}px
                         </div>
                       </div>
                     </div>
@@ -834,11 +834,15 @@ export default function QRDemoV2() {
                                 <label className="block text-xs font-medium mb-1">Stroke Color</label>
                                 <input
                                   type="color"
-                                  value={params.border.stroke_color || '#2196F3'}
-                                  onChange={(e) => updateParam('border', {
-                                    ...params.border,
-                                    stroke_color: e.target.value
-                                  } as BorderSVG)}
+                                  value={params.border?.mode === 'svg' ? (params.border.stroke_color || '#2196F3') : '#2196F3'}
+                                  onChange={(e) => {
+                                    if (params.border?.mode === 'svg') {
+                                      updateParam('border', {
+                                        ...params.border,
+                                        stroke_color: e.target.value
+                                      } as BorderSVG)
+                                    }
+                                  }}
                                   className="w-full h-8 border rounded cursor-pointer"
                                 />
                               </div>
@@ -848,15 +852,19 @@ export default function QRDemoV2() {
                                   type="range"
                                   min="1"
                                   max="10"
-                                  value={params.border.stroke_width || 3}
-                                  onChange={(e) => updateParam('border', {
-                                    ...params.border,
-                                    stroke_width: parseInt(e.target.value)
-                                  } as BorderSVG)}
+                                  value={params.border?.mode === 'svg' ? (params.border.stroke_width || 3) : 3}
+                                  onChange={(e) => {
+                                    if (params.border?.mode === 'svg') {
+                                      updateParam('border', {
+                                        ...params.border,
+                                        stroke_width: parseInt(e.target.value)
+                                      } as BorderSVG)
+                                    }
+                                  }}
                                   className="w-full"
                                 />
                                 <div className="text-center text-xs text-gray-500">
-                                  {params.border.stroke_width || 3}px
+                                  {params.border?.mode === 'svg' ? (params.border.stroke_width || 3) : 3}px
                                 </div>
                               </div>
                             </div>
@@ -865,26 +873,34 @@ export default function QRDemoV2() {
                               <div className="flex gap-2">
                                 <input
                                   type="color"
-                                  value={params.border.fill === 'none' ? '#FFFFFF' : params.border.fill || '#FFFFFF'}
-                                  onChange={(e) => updateParam('border', {
-                                    ...params.border,
-                                    fill: e.target.value
-                                  } as BorderSVG)}
+                                  value={(params.border?.mode === 'svg' && params.border.fill === 'none') ? '#FFFFFF' : (params.border?.mode === 'svg' ? params.border.fill : undefined) || '#FFFFFF'}
+                                  onChange={(e) => {
+                                    if (params.border?.mode === 'svg') {
+                                      updateParam('border', {
+                                        ...params.border,
+                                        fill: e.target.value
+                                      } as BorderSVG)
+                                    }
+                                  }}
                                   className="flex-1 h-8 border rounded cursor-pointer"
-                                  disabled={params.border.fill === 'none'}
+                                  disabled={params.border?.mode === 'svg' && params.border.fill === 'none'}
                                 />
                                 <button
-                                  onClick={() => updateParam('border', {
-                                    ...params.border,
-                                    fill: params.border.fill === 'none' ? '#FFFFFF' : 'none'
-                                  } as BorderSVG)}
+                                  onClick={() => {
+                                    if (params.border?.mode === 'svg') {
+                                      updateParam('border', {
+                                        ...params.border,
+                                        fill: params.border.fill === 'none' ? '#FFFFFF' : 'none'
+                                      } as BorderSVG)
+                                    }
+                                  }}
                                   className={`px-3 py-1 text-xs rounded ${
-                                    params.border.fill === 'none'
+                                    params.border?.mode === 'svg' && params.border.fill === 'none'
                                       ? 'bg-gray-200 text-gray-700'
                                       : 'bg-primary text-primary-foreground'
                                   }`}
                                 >
-                                  {params.border.fill === 'none' ? 'No Fill' : 'Filled'}
+                                  {(params.border?.mode === 'svg' && params.border.fill === 'none') ? 'No Fill' : 'Filled'}
                                 </button>
                               </div>
                             </div>
@@ -1121,7 +1137,7 @@ export default function QRDemoV2() {
                 )}
                 {params.border && (
                   <span className="px-2 py-1 text-xs bg-green-100 text-green-700 rounded">
-                    {params.border.mode} border
+                    {params.border?.mode} border
                   </span>
                 )}
                 {params.overlay && (
@@ -1140,7 +1156,6 @@ export default function QRDemoV2() {
               <CodeBlock
                 code={generateCodeExample()}
                 language="bash"
-                title="cURL Example"
               />
             </div>
           )}
