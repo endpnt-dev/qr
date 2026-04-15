@@ -62,14 +62,18 @@ export function useDrawing({ onPathChange, strokeColor, strokeWidth, initialPath
 
       onPathChange(optimizedPath)
     } else {
-      setCommandBudget(prev => ({
-        ...prev,
-        commands: 0,
-        characters: 0
-      }))
-      onPathChange('')
+      // Only clear path if no initialPath (preset) exists
+      // This prevents clearing preset paths when strokes are empty
+      if (!initialPath) {
+        setCommandBudget(prev => ({
+          ...prev,
+          commands: 0,
+          characters: 0
+        }))
+        onPathChange('')
+      }
     }
-  }, [drawingState.strokes, onPathChange])
+  }, [drawingState.strokes, onPathChange, initialPath])
 
   const saveToHistory = useCallback((state: DrawingState) => {
     setHistory(prev => {
@@ -182,7 +186,10 @@ export function useDrawing({ onPathChange, strokeColor, strokeWidth, initialPath
     setDrawingState(newState)
     saveToHistory(newState)
     currentStrokePoints.current = []
-  }, [drawingState.canvasSize, saveToHistory])
+
+    // Clear any preset path as well
+    onPathChange('')
+  }, [drawingState.canvasSize, saveToHistory, onPathChange])
 
   const loadPath = useCallback((path: string) => {
     // For preset shapes, clear existing strokes and just update the path
@@ -204,6 +211,7 @@ export function useDrawing({ onPathChange, strokeColor, strokeWidth, initialPath
       characters: budget.characters
     }))
 
+    // Call onPathChange to update parent state
     onPathChange(path)
   }, [drawingState.canvasSize, saveToHistory, onPathChange])
 
