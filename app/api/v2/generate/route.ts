@@ -4,11 +4,56 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { validateApiKey, getApiKeyFromHeaders } from '@/lib/auth';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { successResponse, errorResponse, generateRequestId, getErrorMessage } from '@/lib/response';
 import { ERROR_CODES } from '@/lib/config';
 import { generateQRCodeV2, QRParamsV2, QRValidationError, QRProcessingError } from '@/lib/qr-v2';
+
+// Inlined auth functions to avoid module resolution issues
+interface ApiKey {
+  tier: string;
+  name: string;
+}
+
+interface ApiKeys {
+  [key: string]: ApiKey;
+}
+
+function getApiKeyFromHeaders(headers: Headers): string | null {
+  const key = headers.get('x-api-key');
+  return key ? key.trim() : null;
+}
+
+function validateApiKey(key: string | null): ApiKey | null {
+  if (!key) {
+    return null;
+  }
+
+  // Check if key has the correct prefix
+  if (!key.startsWith('ek_')) {
+    return null;
+  }
+
+  try {
+    const apiKeysJson = process.env.API_KEYS;
+    if (!apiKeysJson) {
+      console.error('API_KEYS environment variable not set');
+      return null;
+    }
+
+    const apiKeys: ApiKeys = JSON.parse(apiKeysJson);
+    const keyInfo = apiKeys[key];
+
+    if (!keyInfo) {
+      return null;
+    }
+
+    return keyInfo;
+  } catch (error) {
+    console.error('Failed to parse API_KEYS:', error);
+    return null;
+  }
+}
 
 // Helper to parse request body from different methods
 async function parseRequestBody(request: NextRequest): Promise<QRParamsV2> {
@@ -114,23 +159,19 @@ async function handleQRRequest(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    // TEMPORARY AUTH BYPASS FOR TESTING
-    const keyInfo = { tier: "free" as const, name: "bypass" };
-    console.log(`[${requestId}] AUTH BYPASSED FOR TESTING`);
-
-    // const keyInfo = validateApiKey(apiKey);
-    // if (!keyInfo) {
-    //   console.log(`[${requestId}] Invalid API key`);
-    //   return errorResponse(
-    //     ERROR_CODES.INVALID_API_KEY,
-    //     getErrorMessage(ERROR_CODES.INVALID_API_KEY),
-    //     401,
-    //     {
-    //       request_id: requestId,
-    //       processing_ms: Date.now() - startTime
-    //     }
-    //   );
-    // }
+    const keyInfo = validateApiKey(apiKey);
+    if (!keyInfo) {
+      console.log(`[${requestId}] Invalid API key`);
+      return errorResponse(
+        ERROR_CODES.INVALID_API_KEY,
+        getErrorMessage(ERROR_CODES.INVALID_API_KEY),
+        401,
+        {
+          request_id: requestId,
+          processing_ms: Date.now() - startTime
+        }
+      );
+    }
 
     // Check tier-based feature gating
     const tier = keyInfo.tier;
