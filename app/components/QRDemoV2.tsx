@@ -145,6 +145,37 @@ export default function QRDemoV2() {
         body: JSON.stringify(params)
       })
 
+      // Handle non-200 responses
+      if (!response.ok) {
+        let errorMessage = `HTTP ${response.status}: ${response.statusText}`
+
+        try {
+          const errorResult = await response.json()
+          if (errorResult.error) {
+            if (typeof errorResult.error === 'string') {
+              errorMessage = errorResult.error
+            } else if (errorResult.error.message) {
+              errorMessage = errorResult.error.message
+            } else if (errorResult.error.code) {
+              errorMessage = `Error: ${errorResult.error.code}`
+            }
+          }
+        } catch (jsonErr) {
+          // If we can't parse the error response, use the HTTP status
+        }
+
+        if (response.status === 401) {
+          errorMessage = 'Authentication failed. Please check your API key.'
+        } else if (response.status === 429) {
+          errorMessage = 'Rate limit exceeded. Please try again later.'
+        } else if (response.status === 402) {
+          errorMessage = 'This feature requires a premium subscription.'
+        }
+
+        setError(errorMessage)
+        return
+      }
+
       const result = await response.json()
 
       if (result.success) {
@@ -154,10 +185,22 @@ export default function QRDemoV2() {
           console.warn('QR Generation Warnings:', result.data.warnings)
         }
       } else {
-        setError(result.error || 'Generation failed')
+        // Handle API-level errors (when response is 200 but success: false)
+        let errorMessage = 'QR generation failed'
+        if (result.error) {
+          if (typeof result.error === 'string') {
+            errorMessage = result.error
+          } else if (result.error.message) {
+            errorMessage = result.error.message
+          } else if (result.error.code) {
+            errorMessage = `Error: ${result.error.code}`
+          }
+        }
+        setError(errorMessage)
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Network error')
+      console.error('QR Generation Error:', err)
+      setError(err instanceof Error ? err.message : 'Network error. Please check your connection.')
     } finally {
       setIsGenerating(false)
     }
