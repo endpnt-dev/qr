@@ -237,7 +237,7 @@ export default function DrawingCanvas({
             <button
               key={shape.name}
               onClick={() => handlePresetClick(shape.path)}
-              className="p-2 text-xs border rounded hover:bg-gray-50 text-center transition-colors"
+              className="p-2 text-xs border rounded bg-background hover:bg-gray-100 dark:hover:bg-gray-700 text-foreground text-center transition-colors"
               title={shape.description}
             >
               {shape.name}
