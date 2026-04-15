@@ -1,5 +1,12 @@
-import { QRParamsV2, QRResultV2, QRValidationError, QRProcessingError } from './qr-v2/types';
+import { QRParamsV2, QRResultV2, QRValidationError, QRProcessingError, ValidatedQRParams } from './qr-v2/types';
 import { validateQRParams } from './qr-v2/validate';
+import { renderQRCode } from './qr-v2/render-qr';
+import { applyLogo } from './qr-v2/logo';
+import { applyStyledBorder } from './qr-v2/border-styled';
+import { applyImageBorder } from './qr-v2/border-image';
+import { applySVGBorder } from './qr-v2/border-svg';
+import { applyOverlay } from './qr-v2/overlay';
+import sharp from 'sharp';
 
 // Re-export types for the API route
 export { QRParamsV2, QRValidationError, QRProcessingError };
@@ -25,7 +32,7 @@ export async function generateQRCodeV2(params: QRParamsV2): Promise<QRResultV2> 
 
     // Step 4: Apply border if specified
     if (validatedParams.border) {
-      const borderResult = await applyBorder(currentBuffer, currentSize, validatedParams.border);
+      const borderResult = await handleBorderApplication(currentBuffer, currentSize, validatedParams.border);
       currentBuffer = borderResult.buffer;
       currentSize = borderResult.size;
     }
@@ -61,25 +68,50 @@ export async function generateQRCodeV2(params: QRParamsV2): Promise<QRResultV2> 
   }
 }
 
-// Placeholder functions - will be implemented in separate modules
-async function renderQRCode(params: any): Promise<Buffer> {
-  throw new QRProcessingError('QR rendering not yet implemented', 'QR_RENDERING_FAILED');
+/**
+ * Handle border application based on border mode
+ */
+async function handleBorderApplication(
+  qrBuffer: Buffer,
+  qrSize: number,
+  border: any
+): Promise<{ buffer: Buffer; size: number }> {
+  switch (border.mode) {
+    case 'styled':
+      return await applyStyledBorder(qrBuffer, qrSize, border);
+    case 'image':
+      return await applyImageBorder(qrBuffer, qrSize, border);
+    case 'svg':
+      return await applySVGBorder(qrBuffer, qrSize, border);
+    default:
+      throw new QRProcessingError(`Unknown border mode: ${border.mode}`, 'INVALID_BORDER_MODE');
+  }
 }
 
-async function applyLogo(qrBuffer: Buffer, qrSize: number, params: any): Promise<Buffer> {
-  throw new QRProcessingError('Logo application not yet implemented', 'LOGO_EMBEDDING_FAILED');
-}
-
-async function applyBorder(qrBuffer: Buffer, qrSize: number, border: any): Promise<{ buffer: Buffer; size: number }> {
-  throw new QRProcessingError('Border application not yet implemented', 'BORDER_APPLICATION_FAILED');
-}
-
-async function applyOverlay(qrBuffer: Buffer, qrSize: number, overlay: any): Promise<{ buffer: Buffer; size: number }> {
-  throw new QRProcessingError('Overlay application not yet implemented', 'OVERLAY_APPLICATION_FAILED');
-}
-
+/**
+ * Convert buffer to requested format
+ */
 async function convertFormat(buffer: Buffer, format: string): Promise<Buffer> {
-  // For now, assume input is PNG and just return it
-  // TODO: Implement format conversion using sharp
-  return buffer;
+  if (format === 'png') {
+    return buffer; // Already PNG from sharp operations
+  }
+
+  try {
+    const sharpInstance = sharp(buffer);
+
+    switch (format) {
+      case 'jpeg':
+        return await sharpInstance.jpeg({ quality: 90 }).toBuffer();
+      case 'webp':
+        return await sharpInstance.webp({ quality: 90 }).toBuffer();
+      case 'svg':
+        // SVG format would need special handling - not implemented yet
+        throw new QRProcessingError('SVG output format not yet implemented', 'INVALID_FORMAT');
+      default:
+        throw new QRProcessingError(`Unsupported format: ${format}`, 'INVALID_FORMAT');
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new QRProcessingError(`Format conversion failed: ${message}`, 'GENERATION_FAILED');
+  }
 }

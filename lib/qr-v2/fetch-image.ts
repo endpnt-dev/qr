@@ -1,330 +1,231 @@
-/**
- * Secure Image Fetching Utility
- * Handles remote image downloads with security mitigations and validation
- */
-
-import { QRProcessingError, VALIDATION_LIMITS } from './types';
-
-// ============ SECURITY CONSTANTS ============
-
-// Private/internal IP ranges to block (SSRF protection)
-const BLOCKED_IP_RANGES = [
-  /^127\./, // 127.0.0.0/8 - localhost
-  /^169\.254\./, // 169.254.0.0/16 - link-local
-  /^10\./, // 10.0.0.0/8 - private
-  /^172\.(1[6-9]|2[0-9]|3[01])\./, // 172.16.0.0/12 - private
-  /^192\.168\./, // 192.168.0.0/16 - private
-  /^0\./, // 0.0.0.0/8 - invalid
-  /^224\./, // 224.0.0.0/4 - multicast
-  /^255\./, // 255.0.0.0/8 - broadcast
-];
-
-const BLOCKED_HOSTNAMES = [
-  'localhost',
-  'metadata.google.internal', // GCP metadata
-  '169.254.169.254', // AWS/Azure metadata
-];
-
-// Valid image content types
-const VALID_IMAGE_TYPES = [
-  'image/jpeg',
-  'image/png',
-  'image/gif',
-  'image/webp',
-  'image/svg+xml',
-  'image/bmp'
-];
-
-// ============ URL VALIDATION ============
-
-function validateImageUrl(url: string): void {
-  let parsedUrl: URL;
-
-  try {
-    parsedUrl = new URL(url);
-  } catch (error) {
-    throw new QRProcessingError('Invalid URL format', 'INVALID_IMAGE_URL');
-  }
-
-  // Only allow HTTP/HTTPS protocols
-  if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
-    throw new QRProcessingError('URL must use HTTP or HTTPS protocol', 'INVALID_IMAGE_URL');
-  }
-
-  // Block dangerous hostnames
-  const hostname = parsedUrl.hostname.toLowerCase();
-  if (BLOCKED_HOSTNAMES.includes(hostname)) {
-    throw new QRProcessingError('Access to this hostname is not allowed', 'BLOCKED_IMAGE_URL');
-  }
-
-  // Block private IP ranges
-  for (const range of BLOCKED_IP_RANGES) {
-    if (range.test(hostname)) {
-      throw new QRProcessingError('Access to private/internal IPs is not allowed', 'BLOCKED_IMAGE_URL');
-    }
-  }
-
-  // Additional hostname validation
-  if (hostname.includes('..') || hostname.startsWith('.') || hostname.endsWith('.')) {
-    throw new QRProcessingError('Invalid hostname format', 'INVALID_IMAGE_URL');
-  }
-}
-
-// ============ CONTENT VALIDATION ============
-
-function validateImageContent(buffer: Buffer, contentType: string | null): void {
-  // Validate content type
-  if (!contentType || !VALID_IMAGE_TYPES.some(type => contentType.toLowerCase().startsWith(type))) {
-    throw new QRProcessingError(
-      `Invalid image type. Supported types: ${VALID_IMAGE_TYPES.join(', ')}`,
-      'INVALID_IMAGE_TYPE'
-    );
-  }
-
-  // Validate file size
-  if (buffer.length > VALIDATION_LIMITS.image_max_size_bytes) {
-    throw new QRProcessingError(
-      `Image too large. Maximum size: ${Math.round(VALIDATION_LIMITS.image_max_size_bytes / 1024 / 1024)}MB`,
-      'IMAGE_TOO_LARGE'
-    );
-  }
-
-  // Basic file signature validation
-  validateImageSignature(buffer, contentType);
-}
-
-function validateImageSignature(buffer: Buffer, contentType: string): void {
-  if (buffer.length < 8) {
-    throw new QRProcessingError('Image file too small or corrupted', 'INVALID_IMAGE_CONTENT');
-  }
-
-  const header = buffer.subarray(0, 8);
-
-  // Check magic bytes for common formats
-  const signatures = {
-    'image/jpeg': [
-      [0xFF, 0xD8, 0xFF], // JPEG
-    ],
-    'image/png': [
-      [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A], // PNG
-    ],
-    'image/gif': [
-      [0x47, 0x49, 0x46, 0x38, 0x37, 0x61], // GIF87a
-      [0x47, 0x49, 0x46, 0x38, 0x39, 0x61], // GIF89a
-    ],
-    'image/webp': [
-      [0x52, 0x49, 0x46, 0x46], // RIFF (followed by WEBP)
-    ],
-    'image/bmp': [
-      [0x42, 0x4D], // BM
-    ]
-  };
-
-  const baseContentType = contentType.toLowerCase().split(';')[0];
-  const expectedSignatures = signatures[baseContentType as keyof typeof signatures];
-
-  if (expectedSignatures) {
-    const matches = expectedSignatures.some(signature =>
-      signature.every((byte, index) => header[index] === byte)
-    );
-
-    if (!matches) {
-      throw new QRProcessingError(
-        'Image content does not match declared content type',
-        'INVALID_IMAGE_CONTENT'
-      );
-    }
-  }
-}
-
-// ============ FETCH OPTIONS ============
+import { QRProcessingError } from './types';
+import { QR_V2_LIMITS } from '../config';
+import { lookup } from 'dns/promises';
 
 interface FetchImageOptions {
-  timeoutMs?: number;              // Request timeout in milliseconds
-  maxSizeBytes?: number;           // Maximum image size in bytes
-  label?: string;                  // For error messages (e.g., "logo", "border image", "overlay photo")
-  userAgent?: string;              // Custom user agent
+  maxSizeMB: number;
+  timeoutMs?: number;
+  label: string; // for error mapping: 'logo', 'border_image', 'overlay_photo'
 }
 
-// ============ MAIN FETCH FUNCTION ============
-
-export async function fetchRemoteImage(
-  url: string,
-  options: FetchImageOptions = {}
-): Promise<Buffer> {
-  const {
-    timeoutMs = VALIDATION_LIMITS.image_fetch_timeout_ms,
-    maxSizeBytes = VALIDATION_LIMITS.image_max_size_bytes,
-    label = 'image',
-    userAgent = 'QR-API-v2/1.0'
-  } = options;
-
+/**
+ * Securely fetch an image from a URL with SSRF protection and validation
+ */
+export async function fetchImage(url: string, options: FetchImageOptions): Promise<Buffer> {
+  const { maxSizeMB, timeoutMs = QR_V2_LIMITS.image_fetch_timeout_ms, label } = options;
+  
   try {
-    // Validate URL before making request
-    validateImageUrl(url);
+    // Validate URL format
+    const parsedUrl = new URL(url);
+    if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+      throw new QRProcessingError('URL must use HTTP or HTTPS protocol', getErrorCode(label, 'INVALID_URL'));
+    }
 
-    // Create abort controller for timeout
+    // SSRF Protection: Check for private/internal IP addresses
+    await validateHostname(parsedUrl.hostname, label);
+
+    // Fetch with timeout and size limits
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-
-    let response: Response;
-
+    
     try {
-      // Make HTTP request with security headers
-      response = await fetch(url, {
-        method: 'GET',
-        headers: {
-          'User-Agent': userAgent,
-          'Accept': VALID_IMAGE_TYPES.join(', '),
-          'Cache-Control': 'no-cache'
-        },
+      const response = await fetch(url, {
         signal: controller.signal,
-        redirect: 'follow', // Allow up to 20 redirects by default
-        // Don't follow redirects to potentially dangerous URLs
+        headers: {
+          'User-Agent': 'EndpntQR/1.0 Image Fetcher',
+        },
       });
-    } finally {
+      
       clearTimeout(timeoutId);
-    }
 
-    // Check response status
-    if (!response.ok) {
-      const statusText = response.statusText || 'Unknown error';
-      if (response.status === 404) {
-        throw new QRProcessingError(`${label} not found (404)`, `${label.toUpperCase().replace(/\s+/g, '_')}_NOT_FOUND`);
-      } else if (response.status >= 500) {
-        throw new QRProcessingError(`${label} server error (${response.status})`, `${label.toUpperCase().replace(/\s+/g, '_')}_SERVER_ERROR`);
-      } else {
+      if (!response.ok) {
         throw new QRProcessingError(
-          `Failed to fetch ${label}: ${response.status} ${statusText}`,
-          `${label.toUpperCase().replace(/\s+/g, '_')}_FETCH_FAILED`
+          `HTTP ${response.status}: ${response.statusText}`,
+          getErrorCode(label, 'SERVER_ERROR')
         );
       }
-    }
 
-    // Check content length header
-    const contentLength = response.headers.get('content-length');
-    if (contentLength && parseInt(contentLength, 10) > maxSizeBytes) {
-      throw new QRProcessingError(
-        `${label} too large (${Math.round(parseInt(contentLength, 10) / 1024 / 1024)}MB)`,
-        'IMAGE_TOO_LARGE'
-      );
-    }
+      // Validate content type
+      const contentType = response.headers.get('content-type') || '';
+      if (!contentType.startsWith('image/')) {
+        throw new QRProcessingError(
+          `Invalid content type: ${contentType}. Expected image/*`,
+          getErrorCode(label, 'INVALID_TYPE')
+        );
+      }
 
-    // Get content type
-    const contentType = response.headers.get('content-type');
-
-    // Download image data with streaming size check
-    const chunks: Buffer[] = [];
-    let totalSize = 0;
-    const reader = response.body?.getReader();
-
-    if (!reader) {
-      throw new QRProcessingError(`Failed to read ${label} data`, `${label.toUpperCase().replace(/\s+/g, '_')}_READ_FAILED`);
-    }
-
-    try {
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        totalSize += value.length;
-        if (totalSize > maxSizeBytes) {
+      // Check content length if available
+      const contentLength = response.headers.get('content-length');
+      if (contentLength) {
+        const sizeBytes = parseInt(contentLength, 10);
+        const maxSizeBytes = maxSizeMB * 1024 * 1024;
+        if (sizeBytes > maxSizeBytes) {
           throw new QRProcessingError(
-            `${label} too large during download (exceeded ${Math.round(maxSizeBytes / 1024 / 1024)}MB)`,
-            'IMAGE_TOO_LARGE'
+            `Image too large: ${(sizeBytes / 1024 / 1024).toFixed(1)}MB. Maximum: ${maxSizeMB}MB`,
+            getErrorCode(label, 'TOO_LARGE')
           );
         }
-
-        chunks.push(Buffer.from(value));
       }
-    } finally {
-      reader.releaseLock();
+
+      // Read response body
+      const arrayBuffer = await response.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+
+      // Validate actual size
+      const maxSizeBytes = maxSizeMB * 1024 * 1024;
+      if (buffer.length > maxSizeBytes) {
+        throw new QRProcessingError(
+          `Image too large: ${(buffer.length / 1024 / 1024).toFixed(1)}MB. Maximum: ${maxSizeMB}MB`,
+          getErrorCode(label, 'TOO_LARGE')
+        );
+      }
+
+      // Validate image format by magic bytes
+      await validateImageFormat(buffer, label);
+
+      return buffer;
+      
+    } catch (error) {
+      clearTimeout(timeoutId);
+      
+      if (error.name === 'AbortError') {
+        throw new QRProcessingError(
+          `Request timed out after ${timeoutMs}ms`,
+          getErrorCode(label, 'TIMEOUT')
+        );
+      }
+      
+      if (error instanceof QRProcessingError) {
+        throw error;
+      }
+      
+      throw new QRProcessingError(
+        `Network error: ${error.message}`,
+        getErrorCode(label, 'NETWORK_ERROR')
+      );
     }
-
-    // Combine chunks
-    const imageBuffer = Buffer.concat(chunks);
-
-    // Validate image content
-    validateImageContent(imageBuffer, contentType);
-
-    return imageBuffer;
-
+    
   } catch (error) {
     if (error instanceof QRProcessingError) {
       throw error;
     }
-
-    // Handle fetch-specific errors
-    if (error instanceof TypeError && error.message.includes('fetch')) {
-      throw new QRProcessingError(
-        `Network error fetching ${label}: ${error.message}`,
-        `${label.toUpperCase().replace(/\s+/g, '_')}_NETWORK_ERROR`
-      );
-    }
-
-    // Handle timeout errors
-    if (error instanceof Error && error.name === 'AbortError') {
-      throw new QRProcessingError(
-        `Request timeout fetching ${label} (${timeoutMs}ms)`,
-        `${label.toUpperCase().replace(/\s+/g, '_')}_TIMEOUT`
-      );
-    }
-
-    // Generic error wrapper
-    const errorMessage = error instanceof Error ? error.message : String(error);
+    
     throw new QRProcessingError(
-      `Failed to fetch ${label}: ${errorMessage}`,
-      `${label.toUpperCase().replace(/\s+/g, '_')}_FETCH_FAILED`
+      `Failed to fetch image: ${error.message}`,
+      getErrorCode(label, 'FETCH_FAILED')
     );
   }
 }
 
-// ============ UTILITY FUNCTIONS ============
-
 /**
- * Validates if a URL points to an allowed image source
- * (without actually fetching the image)
+ * Validate hostname to prevent SSRF attacks
  */
-export function isValidImageUrl(url: string): boolean {
+async function validateHostname(hostname: string, label: string): Promise<void> {
   try {
-    validateImageUrl(url);
-    return true;
-  } catch {
-    return false;
+    const addresses = await lookup(hostname, { all: true });
+    
+    for (const { address, family } of addresses) {
+      if (family === 4) {
+        // IPv4 private ranges
+        if (isPrivateIPv4(address)) {
+          throw new QRProcessingError(
+            `Access to private IP address blocked: ${address}`,
+            getErrorCode(label, 'BLOCKED_URL')
+          );
+        }
+      } else if (family === 6) {
+        // IPv6 private ranges
+        if (isPrivateIPv6(address)) {
+          throw new QRProcessingError(
+            `Access to private IP address blocked: ${address}`,
+            getErrorCode(label, 'BLOCKED_URL')
+          );
+        }
+      }
+    }
+  } catch (error) {
+    if (error instanceof QRProcessingError) {
+      throw error;
+    }
+    throw new QRProcessingError(
+      `DNS resolution failed for ${hostname}`,
+      getErrorCode(label, 'NETWORK_ERROR')
+    );
   }
 }
 
 /**
- * Gets image metadata without downloading the full image
- * (uses HTTP HEAD request)
+ * Check if IPv4 address is in private range
  */
-export async function getImageMetadata(url: string): Promise<{
-  contentType: string | null;
-  contentLength: number | null;
-  lastModified: string | null;
-}> {
-  validateImageUrl(url);
+function isPrivateIPv4(ip: string): boolean {
+  const parts = ip.split('.').map(Number);
+  if (parts.length !== 4) return false;
+  
+  const [a, b, c, d] = parts;
+  
+  // 10.0.0.0/8
+  if (a === 10) return true;
+  
+  // 172.16.0.0/12
+  if (a === 172 && b >= 16 && b <= 31) return true;
+  
+  // 192.168.0.0/16
+  if (a === 192 && b === 168) return true;
+  
+  // 127.0.0.0/8 (localhost)
+  if (a === 127) return true;
+  
+  // 169.254.0.0/16 (link-local)
+  if (a === 169 && b === 254) return true;
+  
+  return false;
+}
 
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout for HEAD
+/**
+ * Check if IPv6 address is in private range
+ */
+function isPrivateIPv6(ip: string): boolean {
+  // ::1 (localhost)
+  if (ip === '::1') return true;
+  
+  // fc00::/7 (unique local addresses)
+  if (ip.startsWith('fc') || ip.startsWith('fd')) return true;
+  
+  // fe80::/10 (link-local)
+  if (ip.toLowerCase().startsWith('fe8') || ip.toLowerCase().startsWith('fe9') ||
+      ip.toLowerCase().startsWith('fea') || ip.toLowerCase().startsWith('feb')) return true;
+  
+  return false;
+}
 
-  try {
-    const response = await fetch(url, {
-      method: 'HEAD',
-      signal: controller.signal,
-      headers: {
-        'User-Agent': 'QR-API-v2/1.0',
-      }
-    });
-
-    return {
-      contentType: response.headers.get('content-type'),
-      contentLength: response.headers.get('content-length')
-        ? parseInt(response.headers.get('content-length')!, 10)
-        : null,
-      lastModified: response.headers.get('last-modified')
-    };
-  } finally {
-    clearTimeout(timeoutId);
+/**
+ * Validate image format by checking magic bytes
+ */
+async function validateImageFormat(buffer: Buffer, label: string): Promise<void> {
+  if (buffer.length < 8) {
+    throw new QRProcessingError('Invalid image: file too small', getErrorCode(label, 'INVALID_CONTENT'));
   }
+  
+  const header = buffer.slice(0, 8);
+  
+  // Check for supported formats
+  const isPNG = header[0] === 0x89 && header[1] === 0x50 && header[2] === 0x4E && header[3] === 0x47;
+  const isJPEG = header[0] === 0xFF && header[1] === 0xD8 && header[2] === 0xFF;
+  const isWebP = buffer.slice(8, 12).toString() === 'WEBP' && buffer.slice(0, 4).toString() === 'RIFF';
+  const isGIF = header.slice(0, 3).toString() === 'GIF';
+  
+  if (!isPNG && !isJPEG && !isWebP && !isGIF) {
+    throw new QRProcessingError(
+      'Unsupported image format. Supported: PNG, JPEG, WebP, GIF',
+      getErrorCode(label, 'INVALID_TYPE')
+    );
+  }
+}
+
+/**
+ * Map label and error type to specific error codes
+ */
+function getErrorCode(label: string, errorType: string): string {
+  const prefix = label.toUpperCase();
+  return `${prefix}_${errorType}`;
 }
