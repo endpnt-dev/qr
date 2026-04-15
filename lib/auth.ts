@@ -41,5 +41,6 @@ export function validateApiKey(key: string | null): ApiKey | null {
 }
 
 export function getApiKeyFromHeaders(headers: Headers): string | null {
-  return headers.get('x-api-key')
+  const key = headers.get('x-api-key')
+  return key ? key.trim() : null
 }
