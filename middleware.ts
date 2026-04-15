@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 export function middleware(request: NextRequest) {
-  console.log(`=== MIDDLEWARE CALLED === ${request.method} ${request.url}`);
-  console.log(`Headers:`, Object.fromEntries(request.headers.entries()));
-
   // Handle CORS
   if (request.method === 'OPTIONS') {
     return new Response(null, {

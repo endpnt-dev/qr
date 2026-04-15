@@ -209,7 +209,7 @@ Same as screenshot API. Create `.env.example`:
 ```
 UPSTASH_REDIS_REST_URL=https://your-redis.upstash.io
 UPSTASH_REDIS_REST_TOKEN=your_token_here
-API_KEYS={"ek_live_demo123":{"tier":"free","name":"Demo Key"}}
+API_KEYS={"ek_live_yourkey":{"tier":"free","name":"Demo Key"}}
 NEXT_PUBLIC_SITE_URL=https://qr.endpnt.dev
 ```
 
