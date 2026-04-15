@@ -42,7 +42,13 @@ function validateApiKey(key: string | null): ApiKey | null {
     }
 
     const apiKeys: ApiKeys = JSON.parse(apiKeysJson);
+
+    // Detailed debugging
+    console.log(`Key: [${key}] Length: ${key?.length}`);
+    console.log(`Key charCodes: ${key ? Array.from(key).map(c => c.charCodeAt(0)).join(',') : 'null'}`);
+    console.log(`Available keys: ${Object.keys(apiKeys)}`);
     const keyInfo = apiKeys[key];
+    console.log(`Lookup result: ${JSON.stringify(keyInfo)}`);
 
     if (!keyInfo) {
       return null;
