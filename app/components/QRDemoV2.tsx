@@ -140,7 +140,7 @@ export default function QRDemoV2() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-api-key': 'ek_live_74qlNSbK5jTwQ28Y' // Live demo key
+          'x-api-key': 'ek_live_74qlNSbK5jTwQ28Y' // Live demo key (free tier)
         },
         body: JSON.stringify(params)
       })
