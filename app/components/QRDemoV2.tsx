@@ -4,6 +4,7 @@ import { useState, useCallback, useRef, useEffect } from 'react'
 import { QRCode } from 'qrcode'
 import { Download, Palette, Square, Circle, Sparkles, Image as ImageIcon, Brush, Camera } from 'lucide-react'
 import CodeBlock from './CodeBlock'
+import { DrawingCanvas } from './DrawingCanvas'
 
 // Types for v2 API
 interface GradientStop {
@@ -121,12 +122,8 @@ export default function QRDemoV2() {
   const [error, setError] = useState<string | null>(null)
   const [showCode, setShowCode] = useState(false)
 
-  // Drawing canvas for SVG borders
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-  const [isDrawing, setIsDrawing] = useState(false)
+  // SVG path state for custom borders
   const [svgPath, setSvgPath] = useState('')
-  const [currentPath, setCurrentPath] = useState<string[]>([])
-  const [lastPoint, setLastPoint] = useState<{x: number, y: number} | null>(null)
 
   // Generate QR code
   const generateQR = useCallback(async () => {
@@ -227,86 +224,24 @@ export default function QRDemoV2() {
     link.click()
   }, [generatedQR, params.format])
 
-  // Canvas drawing functions
-  const startDrawing = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-
-    const rect = canvas.getBoundingClientRect()
-    const scaleX = canvas.width / rect.width
-    const scaleY = canvas.height / rect.height
-
-    const x = (e.clientX - rect.left) * scaleX
-    const y = (e.clientY - rect.top) * scaleY
-
-    setIsDrawing(true)
-    setLastPoint({ x, y })
-    setCurrentPath([`M${x} ${y}`])
-  }, [])
-
-  const draw = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (!isDrawing || !canvasRef.current || !lastPoint) return
-
-    const canvas = canvasRef.current
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
-
-    const rect = canvas.getBoundingClientRect()
-    const scaleX = canvas.width / rect.width
-    const scaleY = canvas.height / rect.height
-
-    const x = (e.clientX - rect.left) * scaleX
-    const y = (e.clientY - rect.top) * scaleY
-
-    // Draw line on canvas
-    ctx.strokeStyle = '#2196F3'
-    ctx.lineWidth = 2
-    ctx.lineCap = 'round'
-    ctx.beginPath()
-    ctx.moveTo(lastPoint.x, lastPoint.y)
-    ctx.lineTo(x, y)
-    ctx.stroke()
-
-    // Add to path
-    setCurrentPath(prev => [...prev, `L${x} ${y}`])
-    setLastPoint({ x, y })
-  }, [isDrawing, lastPoint])
-
-  const stopDrawing = useCallback(() => {
-    if (!isDrawing) return
-    setIsDrawing(false)
-    setLastPoint(null)
-
-    // Convert current path to SVG path string
-    const pathString = currentPath.join(' ')
-    setSvgPath(pathString)
-  }, [isDrawing, currentPath])
-
-  const clearCanvas = useCallback(() => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
-
-    ctx.clearRect(0, 0, canvas.width, canvas.height)
-    setCurrentPath([])
-    setSvgPath('')
-  }, [])
-
-  const useSVGShape = useCallback(() => {
-    if (!svgPath) return
-
-    updateParam('border', {
-      mode: 'svg',
-      svg_path: svgPath,
-      viewBox: '0 0 200 200',
-      stroke_color: '#2196F3',
-      stroke_width: 3,
-      fill: 'none',
-      padding: 10
-    } as BorderSVG)
-  }, [svgPath, updateParam])
+  // Handle path changes from DrawingCanvas
+  const handlePathChange = useCallback((path: string) => {
+    setSvgPath(path)
+    if (path) {
+      updateParam('border', {
+        mode: 'svg',
+        svg_path: path,
+        viewBox: '0 0 200 200',
+        stroke_color: params.border?.mode === 'svg' ? (params.border.stroke_color || '#2196F3') : '#2196F3',
+        stroke_width: params.border?.mode === 'svg' ? (params.border.stroke_width || 3) : 3,
+        fill: params.border?.mode === 'svg' ? (params.border.fill || 'none') : 'none',
+        padding: 10
+      } as BorderSVG)
+    } else {
+      // Clear border if no path
+      updateParam('border', undefined)
+    }
+  }, [updateParam, params.border])
 
   // Generate API code example
   const generateCodeExample = useCallback(() => {
@@ -781,175 +716,96 @@ export default function QRDemoV2() {
                   {/* SVG Border Controls */}
                   {borderMode === 'svg' && (
                     <div className="space-y-4 p-4 bg-gray-50 rounded-lg">
-                      <div>
-                        <label className="block text-sm font-medium mb-2">Draw Border Shape</label>
-                        <canvas
-                          ref={canvasRef}
-                          width={200}
-                          height={200}
-                          className="border rounded-lg cursor-crosshair bg-white"
-                          style={{ width: '100%', maxWidth: '200px' }}
-                          onMouseDown={startDrawing}
-                          onMouseMove={draw}
-                          onMouseUp={stopDrawing}
-                          onMouseLeave={stopDrawing}
-                        />
-                        <div className="flex gap-2 mt-2">
-                          <button
-                            onClick={clearCanvas}
-                            className="px-3 py-1 text-sm bg-gray-200 rounded hover:bg-gray-300"
-                          >
-                            Clear
-                          </button>
-                          <button
-                            onClick={useSVGShape}
-                            disabled={!svgPath}
-                            className={`px-3 py-1 text-sm rounded ${
-                              svgPath
-                                ? 'bg-primary text-primary-foreground hover:bg-primary/90'
-                                : 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                            }`}
-                          >
-                            Use Shape
-                          </button>
-                        </div>
-                        <p className="text-xs text-gray-500 mt-1">
-                          Draw a custom border shape. Pro tip: Start and end at the same point for a closed shape.
-                        </p>
+                      <DrawingCanvas
+                        onPathChange={handlePathChange}
+                        strokeColor={params.border?.mode === 'svg' ? (params.border.stroke_color || '#2196F3') : '#2196F3'}
+                        strokeWidth={params.border?.mode === 'svg' ? (params.border.stroke_width || 3) : 3}
+                        fill={params.border?.mode === 'svg' ? (params.border.fill || 'none') : 'none'}
+                        initialPath={svgPath}
+                        className="w-full"
+                      />
 
-                        {svgPath && (
-                          <div className="mt-2 p-2 bg-blue-50 rounded text-xs">
-                            <div className="font-medium text-blue-700">Path Generated:</div>
-                            <div className="text-blue-600 font-mono truncate">{svgPath}</div>
-                          </div>
-                        )}
-
-                        {/* Preset SVG Shapes */}
-                        <div className="mt-3">
-                          <label className="block text-xs font-medium mb-2">Or use preset shapes:</label>
-                          <div className="grid grid-cols-2 gap-2">
-                            {[
-                              {
-                                name: 'Rounded Square',
-                                path: 'M30 30 L170 30 Q180 30 180 40 L180 160 Q180 170 170 170 L30 170 Q20 170 20 160 L20 40 Q20 30 30 30 Z'
-                              },
-                              {
-                                name: 'Hexagon',
-                                path: 'M100 20 L160 60 L160 140 L100 180 L40 140 L40 60 Z'
-                              },
-                              {
-                                name: 'Star',
-                                path: 'M100 20 L110 70 L160 70 L120 105 L135 155 L100 125 L65 155 L80 105 L40 70 L90 70 Z'
-                              },
-                              {
-                                name: 'Wave',
-                                path: 'M20 100 Q60 50 100 100 T180 100 L180 180 L20 180 Z'
-                              }
-                            ].map(({ name, path }) => (
-                              <button
-                                key={name}
-                                onClick={() => {
-                                  setSvgPath(path)
-                                  updateParam('border', {
-                                    mode: 'svg',
-                                    svg_path: path,
-                                    viewBox: '0 0 200 200',
-                                    stroke_color: '#2196F3',
-                                    stroke_width: 3,
-                                    fill: 'none',
-                                    padding: 10
-                                  } as BorderSVG)
+                      {/* SVG Style Controls */}
+                      {params.border?.mode === 'svg' && (
+                        <div className="mt-4 space-y-3 p-3 bg-white border rounded">
+                          <h5 className="text-sm font-medium">Border Style</h5>
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>
+                              <label className="block text-xs font-medium mb-1">Stroke Color</label>
+                              <input
+                                type="color"
+                                value={params.border?.mode === 'svg' ? (params.border.stroke_color || '#2196F3') : '#2196F3'}
+                                onChange={(e) => {
+                                  if (params.border?.mode === 'svg') {
+                                    updateParam('border', {
+                                      ...params.border,
+                                      stroke_color: e.target.value
+                                    } as BorderSVG)
+                                  }
                                 }}
-                                className="p-2 text-xs border rounded hover:bg-gray-50 text-center"
-                              >
-                                {name}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-
-                        {/* SVG Style Controls */}
-                        {params.border?.mode === 'svg' && (
-                          <div className="mt-4 space-y-3 p-3 bg-white border rounded">
-                            <h5 className="text-sm font-medium">Border Style</h5>
-                            <div className="grid grid-cols-2 gap-3">
-                              <div>
-                                <label className="block text-xs font-medium mb-1">Stroke Color</label>
-                                <input
-                                  type="color"
-                                  value={params.border?.mode === 'svg' ? (params.border.stroke_color || '#2196F3') : '#2196F3'}
-                                  onChange={(e) => {
-                                    if (params.border?.mode === 'svg') {
-                                      updateParam('border', {
-                                        ...params.border,
-                                        stroke_color: e.target.value
-                                      } as BorderSVG)
-                                    }
-                                  }}
-                                  className="w-full h-8 border rounded cursor-pointer"
-                                />
-                              </div>
-                              <div>
-                                <label className="block text-xs font-medium mb-1">Stroke Width</label>
-                                <input
-                                  type="range"
-                                  min="1"
-                                  max="10"
-                                  value={params.border?.mode === 'svg' ? (params.border.stroke_width || 3) : 3}
-                                  onChange={(e) => {
-                                    if (params.border?.mode === 'svg') {
-                                      updateParam('border', {
-                                        ...params.border,
-                                        stroke_width: parseInt(e.target.value)
-                                      } as BorderSVG)
-                                    }
-                                  }}
-                                  className="w-full"
-                                />
-                                <div className="text-center text-xs text-gray-500">
-                                  {params.border?.mode === 'svg' ? (params.border.stroke_width || 3) : 3}px
-                                </div>
-                              </div>
+                                className="w-full h-8 border rounded cursor-pointer"
+                              />
                             </div>
                             <div>
-                              <label className="block text-xs font-medium mb-1">Fill Color (optional)</label>
-                              <div className="flex gap-2">
-                                <input
-                                  type="color"
-                                  value={(params.border?.mode === 'svg' && params.border.fill === 'none') ? '#FFFFFF' : (params.border?.mode === 'svg' ? params.border.fill : undefined) || '#FFFFFF'}
-                                  onChange={(e) => {
-                                    if (params.border?.mode === 'svg') {
-                                      updateParam('border', {
-                                        ...params.border,
-                                        fill: e.target.value
-                                      } as BorderSVG)
-                                    }
-                                  }}
-                                  className="flex-1 h-8 border rounded cursor-pointer"
-                                  disabled={params.border?.mode === 'svg' && params.border.fill === 'none'}
-                                />
-                                <button
-                                  onClick={() => {
-                                    if (params.border?.mode === 'svg') {
-                                      updateParam('border', {
-                                        ...params.border,
-                                        fill: params.border.fill === 'none' ? '#FFFFFF' : 'none'
-                                      } as BorderSVG)
-                                    }
-                                  }}
-                                  className={`px-3 py-1 text-xs rounded ${
-                                    params.border?.mode === 'svg' && params.border.fill === 'none'
-                                      ? 'bg-gray-200 text-gray-700'
-                                      : 'bg-primary text-primary-foreground'
-                                  }`}
-                                >
-                                  {(params.border?.mode === 'svg' && params.border.fill === 'none') ? 'No Fill' : 'Filled'}
-                                </button>
+                              <label className="block text-xs font-medium mb-1">Stroke Width</label>
+                              <input
+                                type="range"
+                                min="1"
+                                max="10"
+                                value={params.border?.mode === 'svg' ? (params.border.stroke_width || 3) : 3}
+                                onChange={(e) => {
+                                  if (params.border?.mode === 'svg') {
+                                    updateParam('border', {
+                                      ...params.border,
+                                      stroke_width: parseInt(e.target.value)
+                                    } as BorderSVG)
+                                  }
+                                }}
+                                className="w-full"
+                              />
+                              <div className="text-center text-xs text-gray-500">
+                                {params.border?.mode === 'svg' ? (params.border.stroke_width || 3) : 3}px
                               </div>
                             </div>
                           </div>
-                        )}
-                      </div>
+                          <div>
+                            <label className="block text-xs font-medium mb-1">Fill Color (optional)</label>
+                            <div className="flex gap-2">
+                              <input
+                                type="color"
+                                value={(params.border?.mode === 'svg' && params.border.fill === 'none') ? '#FFFFFF' : (params.border?.mode === 'svg' ? params.border.fill : undefined) || '#FFFFFF'}
+                                onChange={(e) => {
+                                  if (params.border?.mode === 'svg') {
+                                    updateParam('border', {
+                                      ...params.border,
+                                      fill: e.target.value
+                                    } as BorderSVG)
+                                  }
+                                }}
+                                className="flex-1 h-8 border rounded cursor-pointer"
+                                disabled={params.border?.mode === 'svg' && params.border.fill === 'none'}
+                              />
+                              <button
+                                onClick={() => {
+                                  if (params.border?.mode === 'svg') {
+                                    updateParam('border', {
+                                      ...params.border,
+                                      fill: params.border.fill === 'none' ? '#FFFFFF' : 'none'
+                                    } as BorderSVG)
+                                  }
+                                }}
+                                className={`px-3 py-1 text-xs rounded ${
+                                  params.border?.mode === 'svg' && params.border.fill === 'none'
+                                    ? 'bg-gray-200 text-gray-700'
+                                    : 'bg-primary text-primary-foreground'
+                                }`}
+                              >
+                                {(params.border?.mode === 'svg' && params.border.fill === 'none') ? 'No Fill' : 'Filled'}
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
 
