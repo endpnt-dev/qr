@@ -1,8 +1,13 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  serverExternalPackages: [
-    'sharp'
-  ],
+  experimental: {
+    serverComponentsExternalPackages: [
+      'sharp',
+      '@qr-platform/qr-code.js',
+      '@resvg/resvg-js',
+      '@undecaf/zbar-wasm'
+    ]
+  },
   images: {
     domains: []
   },
@@ -12,9 +17,17 @@ const nextConfig = {
       config.resolve.fallback = {
         ...config.resolve.fallback,
         'sharp': false,
+        '@qr-platform/qr-code.js': false,
         fs: false,
         path: false,
       }
+    } else {
+      // Server-side webpack config for handling native modules
+      config.externals = config.externals || []
+      config.externals.push({
+        '@resvg/resvg-js-linux-x64-gnu': '@resvg/resvg-js-linux-x64-gnu',
+        '@undecaf/zbar-wasm': '@undecaf/zbar-wasm'
+      })
     }
     return config
   }
