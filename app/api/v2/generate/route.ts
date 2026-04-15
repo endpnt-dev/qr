@@ -115,7 +115,8 @@ async function handleQRRequest(request: NextRequest): Promise<NextResponse> {
 
     const keyInfo = validateApiKey(apiKey);
     if (!keyInfo) {
-      console.log(`[${requestId}] Invalid API key`);
+      console.log(`[${requestId}] Invalid API key: ${apiKey}`);
+      console.log(`[${requestId}] Available keys: ${process.env.API_KEYS ? Object.keys(JSON.parse(process.env.API_KEYS)) : 'NO API_KEYS ENV VAR'}`);
       return errorResponse(
         ERROR_CODES.INVALID_API_KEY,
         getErrorMessage(ERROR_CODES.INVALID_API_KEY),
