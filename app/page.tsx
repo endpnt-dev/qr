@@ -1,10 +1,11 @@
 import Link from 'next/link'
-import { QrCode, Palette, Image, Target, Zap, Settings, ArrowRight, Code, Github } from 'lucide-react'
+import { QrCode, Palette, Image, Target, Zap, Settings, ArrowRight, Code, Github, Sparkles, Square, Camera } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import CodeBlock from './components/CodeBlock'
 
-// Import QRDemo with no SSR to avoid hydration issues
+// Import QRDemo components with no SSR to avoid hydration issues
 const QRDemo = dynamic(() => import('./components/QRDemo'), { ssr: false })
+const QRDemoV2 = dynamic(() => import('./components/QRDemoV2'), { ssr: false })
 
 const features = [
   {
@@ -39,6 +40,39 @@ const features = [
   }
 ]
 
+const v2Features = [
+  {
+    icon: Sparkles,
+    title: 'Premium Dot Styles',
+    description: 'Rounded, extra-rounded, classy and classy-rounded dot patterns for distinctive QR codes'
+  },
+  {
+    icon: Target,
+    title: 'Eye Pattern Customization',
+    description: 'Independent control of outer and inner eye shapes with custom coloring'
+  },
+  {
+    icon: Palette,
+    title: 'Advanced Gradients',
+    description: 'Linear and radial gradients with full control over colors and rotation'
+  },
+  {
+    icon: Square,
+    title: 'Custom Borders',
+    description: 'Styled borders with labels, image frames, or hand-drawn SVG shapes'
+  },
+  {
+    icon: Camera,
+    title: 'Photo Overlays',
+    description: 'Place QR codes on photos with precise positioning and opacity control'
+  },
+  {
+    icon: Zap,
+    title: 'Tier-Based Access',
+    description: 'Free tier includes styling and gradients, premium features require Starter+'
+  }
+]
+
 const codeExamples = {
   curl: `curl -X POST https://qr.endpnt.dev/api/v1/generate \\
   -H "x-api-key: your_api_key" \\
@@ -51,6 +85,32 @@ const codeExamples = {
     "background": "#ffffff",
     "margin": 2,
     "error_correction": "M"
+  }'`,
+
+  v2Advanced: `curl -X POST https://qr.endpnt.dev/api/v2/generate \\
+  -H "x-api-key: your_api_key" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "data": "https://example.com",
+    "size": 400,
+    "format": "png",
+    "dot_style": "classy-rounded",
+    "gradient": {
+      "type": "radial",
+      "colors": [
+        {"offset": 0, "color": "#667eea"},
+        {"offset": 1, "color": "#764ba2"}
+      ]
+    },
+    "border": {
+      "mode": "styled",
+      "width": 20,
+      "color": "#2C3E50",
+      "label": {
+        "text": "SCAN FOR MORE",
+        "position": "bottom"
+      }
+    }
   }'`,
 
   javascript: `const response = await fetch('https://qr.endpnt.dev/api/v1/generate', {
@@ -196,13 +256,46 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Interactive Demo */}
+      {/* v2 Premium Features Section */}
+      <section className="py-20 bg-gradient-to-b from-primary-50 to-background">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-16">
+            <div className="flex items-center justify-center gap-2 mb-4">
+              <Sparkles className="h-8 w-8 text-primary-600" />
+              <h2 className="text-3xl font-bold">QR Code API v2</h2>
+              <span className="px-3 py-1 bg-primary-600 text-white text-sm font-medium rounded-full">
+                NEW
+              </span>
+            </div>
+            <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+              Advanced QR code styling with premium customization features. Create stunning QR codes with custom shapes, gradients, borders, and photo overlays.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
+            {v2Features.map((feature) => (
+              <div key={feature.title} className="space-y-3">
+                <div className="w-12 h-12 rounded-lg bg-primary-600/10 flex items-center justify-center">
+                  <feature.icon className="h-6 w-6 text-primary-600" />
+                </div>
+                <h3 className="text-lg font-semibold">{feature.title}</h3>
+                <p className="text-muted-foreground">{feature.description}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* v2 Interactive Demo */}
+          <QRDemoV2 />
+        </div>
+      </section>
+
+      {/* Basic Demo */}
       <section className="py-20">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
-            <h2 className="text-3xl font-bold mb-4">Try it yourself</h2>
+            <h2 className="text-3xl font-bold mb-4">Basic QR Generator</h2>
             <p className="text-muted-foreground text-lg">
-              Interactive QR code generator with live preview
+              Simple QR code generator with essential features
             </p>
           </div>
 
@@ -222,6 +315,19 @@ export default function HomePage() {
 
           <div className="max-w-4xl mx-auto space-y-8">
             <div className="space-y-6">
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <h3 className="text-lg font-medium">v2 API - Advanced Features</h3>
+                  <span className="px-2 py-1 bg-primary-100 text-primary-700 text-xs font-medium rounded">
+                    Premium
+                  </span>
+                </div>
+                <CodeBlock
+                  code={codeExamples.v2Advanced}
+                  language="bash"
+                />
+              </div>
+
               <div>
                 <h3 className="text-lg font-medium mb-3">JavaScript</h3>
                 <CodeBlock
