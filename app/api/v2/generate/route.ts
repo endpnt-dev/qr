@@ -151,11 +151,7 @@ async function handleQRRequest(request: NextRequest): Promise<NextResponse> {
       return errorResponse(
         ERROR_CODES.AUTH_REQUIRED,
         getErrorMessage(ERROR_CODES.AUTH_REQUIRED),
-        401,
-        {
-          request_id: requestId,
-          processing_ms: Date.now() - startTime
-        }
+        401
       );
     }
 
@@ -165,11 +161,7 @@ async function handleQRRequest(request: NextRequest): Promise<NextResponse> {
       return errorResponse(
         ERROR_CODES.INVALID_API_KEY,
         getErrorMessage(ERROR_CODES.INVALID_API_KEY),
-        401,
-        {
-          request_id: requestId,
-          processing_ms: Date.now() - startTime
-        }
+        401
       );
     }
 
