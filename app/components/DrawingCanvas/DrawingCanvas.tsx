@@ -162,8 +162,26 @@ export default function DrawingCanvas({
           onPointerCancel={handlePointerUp}
         />
 
+        {/* SVG Overlay for loaded paths (presets) */}
+        {initialPath && drawingState.strokes.length === 0 && !drawingState.currentStroke && (
+          <svg
+            className="absolute inset-0 w-full h-full pointer-events-none"
+            viewBox="0 0 200 200"
+            preserveAspectRatio="xMidYMid meet"
+          >
+            <path
+              d={initialPath}
+              stroke={strokeColor}
+              strokeWidth={strokeWidth}
+              fill={fill === 'none' ? 'none' : fill}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        )}
+
         {/* Drawing instructions overlay */}
-        {drawingState.strokes.length === 0 && !drawingState.currentStroke && (
+        {drawingState.strokes.length === 0 && !drawingState.currentStroke && !initialPath && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
             <div className="bg-black/70 text-white text-sm px-3 py-2 rounded-lg">
               Draw your border shape
