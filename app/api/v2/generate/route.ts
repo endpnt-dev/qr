@@ -4,11 +4,11 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { validateApiKey, getApiKeyFromHeaders } from '../../../../lib/auth';
-import { checkRateLimit } from '../../../../lib/rate-limit';
-import { successResponse, errorResponse, generateRequestId, getErrorMessage } from '../../../../lib/response';
-import { ERROR_CODES } from '../../../../lib/config';
-import { generateQRCodeV2, QRParamsV2, QRValidationError, QRProcessingError } from '../../../../lib/qr-v2';
+import { validateApiKey, getApiKeyFromHeaders } from '@/lib/auth';
+import { checkRateLimit } from '@/lib/rate-limit';
+import { successResponse, errorResponse, generateRequestId, getErrorMessage } from '@/lib/response';
+import { ERROR_CODES } from '@/lib/config';
+import { generateQRCodeV2, QRParamsV2, QRValidationError, QRProcessingError } from '@/lib/qr-v2';
 
 // Helper to parse request body from different methods
 async function parseRequestBody(request: NextRequest): Promise<QRParamsV2> {
