@@ -59,6 +59,15 @@ export default function DrawingCanvas({
     // Clear canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height)
 
+    // Draw QR code guide rectangle (dashed)
+    ctx.setLineDash([4, 4])
+    ctx.strokeStyle = '#9CA3AF'
+    ctx.lineWidth = 1
+    const guideSize = 140 // ~70% of 200
+    const guideOffset = (200 - guideSize) / 2
+    ctx.strokeRect(guideOffset, guideOffset, guideSize, guideSize)
+    ctx.setLineDash([]) // Reset dash pattern
+
     // Draw completed strokes
     drawingState.strokes.forEach(stroke => {
       if (stroke.points.length < 2) return
@@ -145,8 +154,8 @@ export default function DrawingCanvas({
           ref={canvasRef}
           width={200}
           height={200}
-          className="w-full h-48 border border-gray-300 rounded-lg cursor-crosshair bg-white touch-none"
-          style={{ touchAction: 'none' }}
+          className="w-full h-[400px] border border-gray-300 rounded-lg cursor-crosshair bg-white touch-none"
+          style={{ touchAction: 'none', maxWidth: '400px' }}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}

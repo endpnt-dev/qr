@@ -490,7 +490,7 @@ export default function QRDemoV2() {
                               ...params.gradient!,
                               type: e.target.value as 'linear' | 'radial'
                             })}
-                            className="w-full p-2 text-sm border rounded bg-white"
+                            className="w-full p-2 text-sm border rounded bg-background"
                           >
                             <option value="linear">Linear</option>
                             <option value="radial">Radial</option>
@@ -528,7 +528,7 @@ export default function QRDemoV2() {
                                 newColors[0] = { offset: 0, color: e.target.value }
                                 updateParam('gradient', { ...params.gradient!, colors: newColors })
                               }}
-                              className="w-full h-8 border rounded cursor-pointer"
+                              className="w-full h-8 border rounded cursor-pointer bg-background"
                             />
                           </div>
                           <div>
@@ -541,7 +541,7 @@ export default function QRDemoV2() {
                                 newColors[1] = { offset: 1, color: e.target.value }
                                 updateParam('gradient', { ...params.gradient!, colors: newColors })
                               }}
-                              className="w-full h-8 border rounded cursor-pointer"
+                              className="w-full h-8 border rounded cursor-pointer bg-background"
                             />
                           </div>
                         </div>
@@ -637,7 +637,7 @@ export default function QRDemoV2() {
                               ...params.border,
                               color: e.target.value
                             } as BorderStyled)}
-                            className="w-full h-10 border rounded cursor-pointer"
+                            className="w-full h-10 border rounded cursor-pointer bg-background"
                           />
                         </div>
                       </div>
@@ -662,7 +662,7 @@ export default function QRDemoV2() {
                             }
                           }}
                           placeholder="Enter border label..."
-                          className="w-full p-2 border rounded bg-white"
+                          className="w-full p-2 border rounded bg-background"
                         />
                       </div>
                     </div>

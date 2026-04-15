@@ -13,38 +13,48 @@ interface SVGPreviewProps {
 function SVGPreview({ path, strokeColor, strokeWidth, fill, className = '' }: SVGPreviewProps) {
   return (
     <div className={`relative ${className}`}>
-      {/* QR Code placeholder */}
-      <div className="w-full h-full bg-gray-100 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center">
-        <div className="w-32 h-32 bg-white rounded-lg shadow-sm flex items-center justify-center">
-          <div className="w-24 h-24 bg-black" style={{
-            backgroundImage: `
-              repeating-linear-gradient(0deg, transparent, transparent 3px, black 3px, black 6px),
-              repeating-linear-gradient(90deg, transparent, transparent 3px, black 3px, black 6px)
-            `,
-            backgroundSize: '12px 12px'
-          }}>
-          </div>
-        </div>
-      </div>
-
-      {/* SVG Border overlay */}
-      {path && (
+      {/* SVG Preview */}
+      <div className="w-full aspect-square bg-gray-100 border-2 border-gray-300 rounded-lg">
         <svg
-          className="absolute inset-0 w-full h-full pointer-events-none"
+          className="w-full h-full"
           viewBox="0 0 200 200"
           preserveAspectRatio="xMidYMid meet"
         >
-          <path
-            d={path}
-            stroke={strokeColor}
-            strokeWidth={strokeWidth}
-            fill={fill === 'none' ? 'none' : fill}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            vectorEffect="non-scaling-stroke"
+          {/* QR Code guide rectangle */}
+          <rect
+            x="30"
+            y="30"
+            width="140"
+            height="140"
+            fill="none"
+            stroke="#9CA3AF"
+            strokeWidth="1"
+            strokeDasharray="4 4"
           />
+
+          {/* QR Code placeholder pattern */}
+          <rect x="30" y="30" width="140" height="140" fill="white" />
+          <defs>
+            <pattern id="qr-pattern" x="0" y="0" width="8" height="8" patternUnits="userSpaceOnUse">
+              <rect x="0" y="0" width="4" height="4" fill="black" />
+              <rect x="4" y="4" width="4" height="4" fill="black" />
+            </pattern>
+          </defs>
+          <rect x="35" y="35" width="130" height="130" fill="url(#qr-pattern)" opacity="0.3" />
+
+          {/* User's drawn border path */}
+          {path && (
+            <path
+              d={path}
+              stroke={strokeColor}
+              strokeWidth={strokeWidth}
+              fill={fill === 'none' ? 'none' : fill}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          )}
         </svg>
-      )}
+      </div>
 
       {/* Preview label */}
       <div className="absolute bottom-2 left-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
