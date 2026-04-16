@@ -121,9 +121,30 @@ export default function QRDemoV2() {
   const [generatedQR, setGeneratedQR] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [showCode, setShowCode] = useState(false)
+  const [isDemoMode, setIsDemoMode] = useState(false)
 
   // SVG path state for custom borders
   const [svgPath, setSvgPath] = useState('')
+
+  // Calculate optimal QR size based on borders
+  const calculateQRSize = useCallback((originalSize: number, border?: any) => {
+    if (!border) return originalSize
+
+    // For styled borders, reduce size to account for border width and padding
+    if (border.mode === 'styled') {
+      const borderWidth = border.width || 20
+      const borderPadding = border.padding || 10
+      const totalBorderSpace = (borderWidth + borderPadding) * 2
+      return Math.max(200, originalSize - totalBorderSpace)
+    }
+
+    // For image/SVG borders, use ~70% of original size to fit inside border
+    if (border.mode === 'image' || border.mode === 'svg') {
+      return Math.max(200, Math.floor(originalSize * 0.7))
+    }
+
+    return originalSize
+  }, [])
 
   // Generate QR code
   const generateQR = useCallback(async () => {
@@ -133,12 +154,18 @@ export default function QRDemoV2() {
     setError(null)
 
     try {
+      // Calculate optimal QR size for borders
+      const optimizedParams = { ...params }
+      if (params.border) {
+        optimizedParams.size = calculateQRSize(params.size, params.border)
+      }
+
       const response = await fetch('/api/v2/demo-generate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(params)
+        body: JSON.stringify(optimizedParams)
       })
 
       // Handle non-200 responses
@@ -176,6 +203,9 @@ export default function QRDemoV2() {
 
       if (result.success) {
         setGeneratedQR(`data:image/${params.format};base64,${result.data.image}`)
+
+        // Track if this is demo mode (watermarked output)
+        setIsDemoMode(result.data.demo === true)
 
         if (result.data.warnings && result.data.warnings.length > 0) {
           console.warn('QR Generation Warnings:', result.data.warnings)
@@ -402,7 +432,7 @@ curl -X POST https://qr.endpnt.dev/api/v2/generate \\
                               : 'border-gray-200 hover:border-gray-300'
                           }`}
                         >
-                          <div className="text-lg mb-1">{preview}</div>
+                          <div className="text-lg mb-1" style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, system-ui, sans-serif' }}>{preview}</div>
                           <div className="text-xs">{name}</div>
                         </button>
                       ))}
@@ -993,13 +1023,23 @@ curl -X POST https://qr.endpnt.dev/api/v2/generate \\
                   {showCode ? 'Hide Code' : 'Show Code'}
                 </button>
                 {generatedQR && (
-                  <button
-                    onClick={downloadQR}
-                    className="flex items-center gap-2 px-3 py-1 text-sm bg-primary text-primary-foreground rounded hover:bg-primary/90"
-                  >
-                    <Download className="w-4 h-4" />
-                    Download
-                  </button>
+                  isDemoMode ? (
+                    <button
+                      onClick={() => window.open('/pricing', '_blank')}
+                      className="flex items-center gap-2 px-3 py-1 text-sm bg-orange-600 text-white rounded hover:bg-orange-700"
+                    >
+                      <Sparkles className="w-4 h-4" />
+                      Upgrade for Clean Download
+                    </button>
+                  ) : (
+                    <button
+                      onClick={downloadQR}
+                      className="flex items-center gap-2 px-3 py-1 text-sm bg-primary text-primary-foreground rounded hover:bg-primary/90"
+                    >
+                      <Download className="w-4 h-4" />
+                      Download
+                    </button>
+                  )
                 )}
               </div>
             </div>
