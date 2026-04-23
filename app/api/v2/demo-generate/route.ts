@@ -6,38 +6,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { successResponse, errorResponse, generateRequestId, getErrorMessage } from '@/lib/response';
 import { ERROR_CODES } from '@/lib/config';
+import { checkDemoRateLimit } from '@/lib/rate-limit';
 import { generateQRCodeV2, QRParamsV2, QRValidationError, QRProcessingError } from '@/lib/qr-v2';
 import sharp from 'sharp';
-
-// In-memory rate limiting for demo endpoint (IP-based, 5 requests per minute)
-const rateLimit = new Map<string, { count: number; resetTime: number }>();
-
-function checkDemoRateLimit(ip: string): { allowed: boolean; remaining: number } {
-  const now = Date.now();
-  const windowMs = 60 * 1000; // 1 minute
-  const maxRequests = 5;
-
-  // Clean up expired entries
-  Array.from(rateLimit.entries()).forEach(([key, value]) => {
-    if (now > value.resetTime) {
-      rateLimit.delete(key);
-    }
-  });
-
-  const current = rateLimit.get(ip);
-  if (!current || now > current.resetTime) {
-    // New window
-    rateLimit.set(ip, { count: 1, resetTime: now + windowMs });
-    return { allowed: true, remaining: maxRequests - 1 };
-  }
-
-  if (current.count >= maxRequests) {
-    return { allowed: false, remaining: 0 };
-  }
-
-  current.count++;
-  return { allowed: true, remaining: maxRequests - current.count };
-}
 
 function checkOrigin(request: NextRequest): boolean {
   const origin = request.headers.get('origin');
@@ -216,7 +187,7 @@ async function handleDemoQRRequest(request: NextRequest): Promise<NextResponse> 
 
     // Check rate limiting
     const clientIP = getClientIP(request);
-    const rateLimitResult = checkDemoRateLimit(clientIP);
+    const rateLimitResult = await checkDemoRateLimit(clientIP);
 
     if (!rateLimitResult.allowed) {
       console.log(`[${requestId}] Rate limited IP: ${clientIP}`);

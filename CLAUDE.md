@@ -84,7 +84,7 @@ This pattern is the model to copy when convert and preview fix their Next 14 con
 
 ## Rate-Limit Namespace
 
-QR uses `rl:qr:{tier}` as the Upstash key prefix. Correct and consistent. Do NOT change.
+QR uses `endpnt:ratelimit:qr:{tier}` as the Upstash key prefix for main auth, and `endpnt:demo:qr:ratelimit` for demo. These match the platform standard (standardized in Phase 8 of CC-SPEC-DEMO-PROXY-STANDARDIZATION.md). Do NOT change.
 
 QR uses the `slidingWindow` algorithm. Matches peer APIs. Don't convert to fixedWindow.
 

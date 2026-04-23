@@ -19,6 +19,12 @@ export const TIER_LIMITS = {
   },
 } as const
 
+// Stricter than platform default (20/10min) — QR demo is image-generation-heavy
+export const DEMO_RATE_LIMIT = {
+  requests_per_window: 5,
+  window_minutes: 1,
+} as const
+
 export const QR_DEFAULTS = {
   size: 400,
   format: 'png' as const,

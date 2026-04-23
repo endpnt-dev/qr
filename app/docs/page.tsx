@@ -114,7 +114,7 @@ const errorCodes = [
 
 const codeExamples = {
   curl: `curl -X POST https://qr.endpnt.dev/api/v1/generate \\
-  -H "x-api-key: ek_live_hoWnzx74NUf04esiG8pv" \\
+  -H "x-api-key: YOUR_API_KEY" \\
   -H "Content-Type: application/json" \\
   -d '{
     "data": "https://example.com",
@@ -280,8 +280,7 @@ export default function DocsPage() {
                   <div>
                     <p className="font-medium text-sm">Demo API Key</p>
                     <p className="text-sm text-muted-foreground">
-                      Use <code className="bg-background px-1.5 py-0.5 rounded font-mono">ek_live_hoWnzx74NUf04esiG8pv</code> for testing.
-                      This key has free tier limits (10 requests/minute, 100/month).
+                      Use your API key from the endpnt.dev dashboard in the <code className="bg-background px-1.5 py-0.5 rounded font-mono">x-api-key</code> header.
                     </p>
                   </div>
                 </div>
@@ -398,7 +397,7 @@ export default function DocsPage() {
           <section id="tester" className="mb-16">
             <h2 className="text-2xl font-bold mb-6">Interactive API Tester</h2>
             <p className="text-muted-foreground mb-6">
-              Test the API directly from this page. The demo key is pre-filled for convenience.
+              Test the API directly from this page. Enter your API key above to start testing.
             </p>
             <ApiTester />
           </section>
