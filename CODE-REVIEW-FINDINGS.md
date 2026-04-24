@@ -1,3 +1,5 @@
+> **⚠️ Security note (2026-04-24):** This file previously contained a live API key literal (C-008). The key has been revoked and is no longer active. Curl examples use `YOUR_API_KEY` — substitute a key retrieved from Vercel env.
+
 # QR API — Code Review Findings (endpnt-dev/qr)
 **Reviewed by:** Opus (Claude chat) — cross-repo code review
 **Date:** April 17, 2026
@@ -118,7 +120,7 @@ Multiple places in v2 demo-generate cast error codes as `any` because they're no
 ### P4 — Demo API keys are hardcoded in frontend (known issue — Pattern A)
 **Files:** `app/components/ApiTester.tsx:59`, `app/docs/page.tsx:117`, `app/docs/page.tsx:283`
 
-The key `ek_live_hoWnzx74NUf04esiG8pv` appears hardcoded in three places. This is Pattern A (documented in Cipher's CC-SPEC as the pattern being phased out). Not a tonight fix — will be addressed in the platform-wide Pattern B migration after Cipher ships.
+The key `YOUR_API_KEY` appears hardcoded in three places. This is Pattern A (documented in Cipher's CC-SPEC as the pattern being phased out). Not a tonight fix — will be addressed in the platform-wide Pattern B migration after Cipher ships.
 
 ### P5 — Error message table in config is incomplete vs error codes used in routes
 **File:** `lib/response.ts` `getErrorMessage()` — covers 8 codes.
